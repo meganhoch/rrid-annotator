@@ -1,0 +1,31 @@
+{
+  "description": "Ground truth for the ambiguous-term disambiguation test. Only the SOFTWARE senses are true RRID resources and should be annotated; the biological senses (animal / nerve cell) must NOT be annotated even though the surface string is identical.",
+  "source": "ambiguous_terms_sample.txt",
+  "cases": [
+    { "term": "python",   "snippet": "Reticulated pythons were the most frequently encountered", "should_annotate": false, "sense": "animal (snake)" },
+    { "term": "python",   "snippet": "one juvenile python was radio-tagged",                       "should_annotate": false, "sense": "animal (snake)" },
+    { "term": "anacondas","snippet": "Green anacondas were scarcer",                               "should_annotate": false, "sense": "animal (snake)" },
+    { "term": "anacondas","snippet": "two adult anacondas were seen basking",                      "should_annotate": false, "sense": "animal (snake)" },
+    { "term": "pandas",   "snippet": "a family of captive giant pandas",                           "should_annotate": false, "sense": "animal (giant panda)" },
+    { "term": "pandas",   "snippet": "the two red pandas housed in the same facility",             "should_annotate": false, "sense": "animal (red panda)" },
+    { "term": "neuron",   "snippet": "layer-5 pyramidal neurons in acute cortical slices",         "should_annotate": false, "sense": "nerve cell" },
+    { "term": "neuron",   "snippet": "Each neuron was held in whole-cell configuration",           "should_annotate": false, "sense": "nerve cell" },
+    { "term": "neurons",  "snippet": "roughly forty neurons met our inclusion criteria",           "should_annotate": false, "sense": "nerve cell" },
+    { "term": "neurons",  "snippet": "comparison against the recorded neurons",                     "should_annotate": false, "sense": "nerve cell" },
+
+    { "term": "Python",   "snippet": "a workstation running Python 3.11",                           "should_annotate": true,  "sense": "software (programming language)", "expected_rrid_hint": "SCR_008394" },
+    { "term": "Python",   "snippet": "was scripted in Python and version-controlled",              "should_annotate": true,  "sense": "software (programming language)", "expected_rrid_hint": "SCR_008394" },
+    { "term": "Anaconda", "snippet": "installed through the Anaconda distribution",                "should_annotate": true,  "sense": "software (Python distribution)", "expected_rrid_hint": "SCR_025572" },
+    { "term": "Anaconda", "snippet": "we preferred Anaconda over a bare interpreter",             "should_annotate": true,  "sense": "software (Python distribution)", "expected_rrid_hint": "SCR_025572" },
+    { "term": "pandas",   "snippet": "read into a pandas DataFrame",                               "should_annotate": true,  "sense": "software (data-analysis library)", "expected_rrid_hint": "SCR_018214" },
+    { "term": "pandas",   "snippet": "pandas handled the time-series joins",                       "should_annotate": true,  "sense": "software (data-analysis library)", "expected_rrid_hint": "SCR_018214" },
+    { "term": "NEURON",   "snippet": "built multi-compartment models in NEURON",                  "should_annotate": true,  "sense": "software (simulation environment)", "expected_rrid_hint": "SCR_005393" },
+    { "term": "NEURON",   "snippet": "was imported into NEURON",                                  "should_annotate": true,  "sense": "software (simulation environment)", "expected_rrid_hint": "SCR_005393" },
+    { "term": "NEURON",   "snippet": "Running the models in NEURON rather than a hand-rolled solver", "should_annotate": true, "sense": "software (simulation environment)", "expected_rrid_hint": "SCR_005393" }
+  ],
+  "notes": [
+    "expected_rrid_hint values are indicative SciCrunch SCR_ IDs to sanity-check against; verify the live lookup rather than trusting these literally.",
+    "Case is a weak signal: the software senses here are capitalized (Python/Anaconda/NEURON) except 'pandas', which is lowercase in BOTH senses -- so casing alone cannot disambiguate.",
+    "The real disambiguation signal is the surrounding context (version numbers, 'distribution', 'DataFrame', 'models in', 'scripted in' vs 'basking', 'species', 'pyramidal', 'whole-cell')."
+  ]
+}

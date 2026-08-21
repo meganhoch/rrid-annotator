@@ -1,0 +1,14 @@
+# clasp — contains your Apps Script scriptId and bound-Doc parentId.
+# Each developer points at their own project; keep it out of the public repo.
+.clasp.json
+
+# Local env / secrets (API keys live in Apps Script Properties, never in files —
+# this is belt-and-suspenders in case a local .env is ever added).
+.env
+.env.*
+
+# Node
+node_modules/
+
+# macOS
+.DS_Store

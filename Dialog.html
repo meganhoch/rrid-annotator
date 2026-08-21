@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; font-size: 13px; padding: 14px; color: #202124; }
+    .match-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 0; border-bottom: 1px solid #e8eaed;
+    }
+    .match-row:last-child { border-bottom: none; }
+    .match-row input { flex-shrink: 0; cursor: pointer; width: 15px; height: 15px; }
+    code {
+      background: #f1f3f4; padding: 1px 6px;
+      border-radius: 3px; font-size: 11px; font-family: monospace;
+    }
+    .name-label { color: #5f6368; font-size: 11px; }
+    .footer {
+      display: flex; justify-content: flex-end; align-items: center;
+      gap: 8px; margin-top: 14px; padding-top: 10px;
+      border-top: 1px solid #e8eaed;
+    }
+    button {
+      padding: 7px 18px; border-radius: 4px; border: none;
+      cursor: pointer; font-size: 13px; font-family: Arial, sans-serif;
+    }
+    .btn-insert { background: #1a73e8; color: #fff; }
+    .btn-insert:hover { background: #1557b0; }
+    .btn-cancel { background: #f1f3f4; color: #202124; }
+    #status { font-size: 12px; color: #5f6368; margin-right: auto; }
+  </style>
+</head>
+<body>
+
+  <? for (var i = 0; i < matches.length; i++) { ?>
+  <div class="match-row">
+    <input type="checkbox" id="cb_<?= i ?>" checked>
+    <label for="cb_<?= i ?>">
+      <strong><?= matches[i].candidate ?></strong> &rarr;
+      <code><?= matches[i].rrid ?></code>
+      <span class="name-label"><?= matches[i].name ?></span>
+    </label>
+  </div>
+  <? } ?>
+
+  <div class="footer">
+    <span id="status"></span>
+    <button class="btn-cancel" onclick="google.script.host.close()">Cancel</button>
+    <button class="btn-insert" onclick="insertSelected()">Insert</button>
+  </div>
+
+  <script>
+    var matches = <?!= JSON.stringify(matches) ?>;
+
+    function setStatus(msg) {
+      document.getElementById('status').textContent = msg;
+    }
+
+    function insertSelected() {
+      try {
+        setStatus('type:' + typeof matches + ' isArr:' + Array.isArray(matches));
+        var selected = matches.filter(function(_, i) {
+          var cb = document.getElementById('cb_' + i);
+          return cb && cb.checked;
+        });
+        setStatus('selected:' + selected.length + ' matches:' + matches.length);
+        if (!selected.length) { google.script.host.close(); return; }
+        document.querySelectorAll('button').forEach(function(b) { b.disabled = true; });
+        setStatus('calling server…');
+        google.script.run
+          .withSuccessHandler(function(log) {
+            setStatus('done: ' + (log || '(empty)'));
+            document.querySelectorAll('button').forEach(function(b) { b.disabled = false; });
+          })
+          .withFailureHandler(function(err) {
+            setStatus('ERR: ' + (err && err.message));
+            document.querySelectorAll('button').forEach(function(b) { b.disabled = false; });
+          })
+          .insertCitations(JSON.stringify(selected));
+      } catch(e) {
+        setStatus('CAUGHT: ' + e.message + ' | typeof matches=' + typeof matches);
+      }
+    }
+  </script>
+</body>
+</html>

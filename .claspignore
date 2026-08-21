@@ -1,0 +1,16 @@
+# Ignore everything by default…
+**/**
+
+# …then allow only the Apps Script add-on source files.
+# (Keeps the Node test harness under test/ out of the GAS project — its
+# top-level require()/fs/vm would throw ReferenceError in the V8 runtime
+# and break the whole add-on.)
+!appsscript.json
+!Code.gs
+!Dialog.html
+!Disambiguator.gs
+!Extractor.gs
+!SciCrunch.gs
+!Scorer.gs
+!Settings.html
+!Sidebar.html

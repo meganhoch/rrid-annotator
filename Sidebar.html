@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; font-size: 13px; color: #202124; padding: 12px; }
+
+    .head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .head h2 { font-size: 13px; font-weight: bold; }
+    .link-btn {
+      background: none; border: none; color: #1a73e8; cursor: pointer;
+      font-size: 12px; font-family: Arial, sans-serif; padding: 2px 4px;
+    }
+    .link-btn:hover { text-decoration: underline; }
+
+    /* list view */
+    .rrid-item {
+      display: flex; align-items: flex-start; gap: 9px;
+      background: #fff; border: 1px solid #e8eaed; border-radius: 6px;
+      padding: 9px 11px; margin-bottom: 7px;
+    }
+    .rrid-item.off { opacity: .5; }
+    .rrid-item .cb { flex-shrink: 0; margin-top: 2px; width: 15px; height: 15px; cursor: pointer; }
+    .rrid-item .text { flex: 1; cursor: pointer; min-width: 0; }
+    .rrid-item .text:hover .label { text-decoration: underline; }
+    .rrid-item.off .text { cursor: default; }
+    .rrid-item.off .text:hover .label { text-decoration: none; }
+    .rrid-item .label { font-weight: bold; font-size: 13px; color: #202124; }
+    .rrid-item .label.empty { color: #9aa0a6; font-weight: normal; font-style: italic; }
+    .rrid-item .jump-hint { color: #9aa0a6; font-size: 11px; margin-left: 4px; }
+    .btn {
+      padding: 6px 14px; border-radius: 4px; border: none; cursor: pointer;
+      font-size: 12px; font-family: Arial, sans-serif;
+    }
+    .btn-danger { background: #fce8e6; color: #c5221f; }
+    .btn-danger:hover { background: #fad2cf; }
+    code {
+      background: #f1f3f4; padding: 1px 6px; border-radius: 3px;
+      font-size: 11px; font-family: monospace; color: #202124;
+    }
+
+    .muted { color: #5f6368; }
+    .empty-state { color: #5f6368; padding: 18px 4px; text-align: center; line-height: 1.5; }
+
+    /* detail view */
+    .detail h3 { font-size: 15px; margin-bottom: 4px; }
+    .detail .rrid-line { margin-bottom: 10px; }
+    .section { margin-top: 12px; }
+    .section .section-title {
+      font-size: 11px; text-transform: uppercase; letter-spacing: .04em;
+      color: #5f6368; margin-bottom: 4px;
+    }
+    .desc { line-height: 1.5; }
+    .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+    .chip { background: #f1f3f4; border-radius: 10px; padding: 2px 9px; font-size: 11px; color: #3c4043; }
+    .type-badge {
+      display: inline-block; background: #e8f0fe; color: #1967d2;
+      border-radius: 10px; padding: 1px 9px; font-size: 11px; margin-right: 5px;
+    }
+    .open-link {
+      display: inline-block; margin-top: 14px; color: #1a73e8;
+      text-decoration: none; font-size: 13px;
+    }
+    .open-link:hover { text-decoration: underline; }
+    .spinner { color: #5f6368; padding: 16px 4px; }
+    .err { color: #c5221f; padding: 12px 4px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+
+  <div id="list-view">
+    <div class="head">
+      <h2>RRIDs in this document</h2>
+      <button class="link-btn" onclick="loadList()">Refresh</button>
+    </div>
+    <div id="list"><div class="spinner">Scanning document…</div></div>
+  </div>
+
+  <div id="detail-view" style="display:none;">
+    <div class="head">
+      <button class="link-btn" onclick="showList()">&larr; Back</button>
+    </div>
+    <div id="detail"><div class="spinner">Loading…</div></div>
+  </div>
+
+  <script>
+    function esc(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function showList()   { document.getElementById('detail-view').style.display = 'none';
+                            document.getElementById('list-view').style.display   = 'block'; }
+    function showDetail() { document.getElementById('list-view').style.display   = 'none';
+                            document.getElementById('detail-view').style.display = 'block'; }
+
+    // ── List ──
+    function loadList() {
+      var el = document.getElementById('list');
+      el.innerHTML = '<div class="spinner">Scanning document…</div>';
+      google.script.run
+        .withSuccessHandler(renderList)
+        .withFailureHandler(function (e) {
+          el.innerHTML = '<div class="err">' + esc(e && e.message) + '</div>';
+        })
+        .getDocRrids();
+    }
+
+    function renderList(items) {
+      var el = document.getElementById('list');
+      if (!items || !items.length) {
+        el.innerHTML = '<div class="empty-state">No RRIDs found in this document yet.<br>' +
+                       'Use <b>RRID &rarr; Annotate Selection</b> to add some.</div>';
+        return;
+      }
+      el.innerHTML = '';
+      items.forEach(function (it) {
+        var row = document.createElement('div');
+        row.className = 'rrid-item';
+
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.className = 'cb';
+        cb.checked = true;
+        cb.title = 'Toggle this annotation in the document';
+        cb.onchange = function () { toggleAnnotation(it, row, cb); };
+
+        var labelHtml = it.label
+          ? '<span class="label">' + esc(it.label) + '</span>'
+          : '<span class="label empty">(unnamed)</span>';
+        var text = document.createElement('div');
+        text.className = 'text';
+        text.innerHTML = labelHtml + '<span class="jump-hint">&#8599;</span>' +
+                         '<br><code>RRID:' + esc(it.rrid) + '</code>';
+        text.onclick = function () {
+          if (!cb.checked) return;   // removed annotations have nowhere to jump
+          jumpAndDetail(it.rrid);
+        };
+
+        row.appendChild(cb);
+        row.appendChild(text);
+        el.appendChild(row);
+      });
+    }
+
+    // Toggle the annotation off (remove) / on (restore) in the document.
+    function toggleAnnotation(it, row, cb) {
+      var want = cb.checked;
+      cb.disabled = true;
+      var fn = want ? 'restoreAnnotation' : 'removeAnnotation';
+      google.script.run
+        .withSuccessHandler(function (res) {
+          cb.disabled = false;
+          if (res && res.ok) {
+            row.classList.toggle('off', !want);
+          } else {
+            cb.checked = !want;   // revert on failure
+            alert((res && res.error) || 'Could not update the annotation.');
+          }
+        })
+        .withFailureHandler(function (e) {
+          cb.disabled = false;
+          cb.checked = !want;
+          alert(e && e.message);
+        })
+        [fn](it.rrid, it.anchor);
+    }
+
+    // ── Detail ──
+    // Clicking a row both scrolls the doc to the citation and shows details here.
+    function jumpAndDetail(rrid) {
+      google.script.run
+        .withFailureHandler(function () {})
+        .jumpToRrid(rrid);
+      openDetail(rrid);
+    }
+
+    function removeFromDetail(rrid) {
+      google.script.run
+        .withSuccessHandler(function (res) {
+          if (res && res.ok) { showList(); loadList(); }
+          else alert((res && res.error) || 'Could not remove the annotation.');
+        })
+        .withFailureHandler(function (e) { alert(e && e.message); })
+        .removeAnnotation(rrid);
+    }
+
+    function openDetail(rrid) {
+      showDetail();
+      var el = document.getElementById('detail');
+      el.innerHTML = '<div class="spinner">Loading RRID:' + esc(rrid) + '…</div>';
+      google.script.run
+        .withSuccessHandler(renderDetail)
+        .withFailureHandler(function (e) {
+          el.innerHTML = '<div class="err">' + esc(e && e.message) + '</div>';
+        })
+        .getRridDetails(rrid);
+    }
+
+    function renderDetail(d) {
+      var el = document.getElementById('detail');
+      if (!d || d.error) {
+        el.innerHTML = '<div class="err">' + esc((d && d.error) || 'Lookup failed.') + '</div>';
+        return;
+      }
+      var html = '<div class="detail">';
+      html += '<h3>' + esc(d.name || '(unnamed resource)') + '</h3>';
+      html += '<div class="rrid-line"><code>RRID:' + esc(d.rrid) + '</code></div>';
+
+      if (d.types && d.types.length) {
+        html += '<div>';
+        d.types.forEach(function (t) { html += '<span class="type-badge">' + esc(t) + '</span>'; });
+        html += '</div>';
+      }
+      if (d.description) {
+        html += '<div class="section"><div class="section-title">Description</div>' +
+                '<div class="desc">' + esc(d.description) + '</div></div>';
+      }
+      if (d.synonyms && d.synonyms.length) {
+        html += '<div class="section"><div class="section-title">Also known as</div><div class="chips">';
+        d.synonyms.forEach(function (s) { html += '<span class="chip">' + esc(s) + '</span>'; });
+        html += '</div></div>';
+      }
+      if (d.resourceUrl) {
+        html += '<div class="section"><div class="section-title">Homepage</div>' +
+                '<a class="open-link" href="' + esc(d.resourceUrl) + '" target="_blank" rel="noopener">' +
+                esc(d.resourceUrl) + '</a></div>';
+      }
+      html += '<div><a class="open-link" href="' + esc(d.url) +
+              '" target="_blank" rel="noopener">Open resolver &#8599;</a></div>';
+      html += '<div class="section">' +
+              '<button class="btn btn-danger" onclick="removeFromDetail(\'' + esc(d.rrid) + '\')">' +
+              'Remove annotation from document</button></div>';
+      html += '</div>';
+      el.innerHTML = html;
+    }
+
+    loadList();
+  </script>
+</body>
+</html>
