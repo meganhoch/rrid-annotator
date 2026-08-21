@@ -14,7 +14,7 @@ each annotation.
 
 <img width=100%  alt="image" src="https://github.com/user-attachments/assets/fe3cfc0c-e5db-432d-a8f3-f5fa92600498" />
 
-<br>
+<br><br>
 RRIDs make methods sections reproducible: each identifier resolves (via
 [n2t.net](https://n2t.net/)) to a single, unambiguous record for the resource an
 author actually used.
