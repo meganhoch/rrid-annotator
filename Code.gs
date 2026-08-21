@@ -1,8 +1,8 @@
 function onOpen() {
   DocumentApp.getUi()
     .createMenu('RRID')
-    .addItem('Annotate Selection', 'annotateSelection')
-    .addItem('Annotate Selection (no dialog)', 'annotateSelectionDirect')
+    .addItem('Annotate Selection', 'annotateSelectionDirect')
+    .addItem('Annotate Selection (review)…', 'annotateSelection')
     .addItem('Open RRID Panel', 'showRridPanel')
     .addSeparator()
     .addItem('Diagnose Selection (debug)', 'diagnoseSelection')
@@ -144,7 +144,7 @@ function gatherSelectionMatches() {
   return { matches: matches };
 }
 
-// Menu: "Annotate Selection" — review the matches in a dialog before inserting.
+// Menu: "Annotate Selection (review)…" — review the matches in a dialog before inserting.
 function annotateSelection() {
   const ui  = DocumentApp.getUi();
   const res = gatherSelectionMatches();
@@ -159,7 +159,7 @@ function annotateSelection() {
   ui.showModalDialog(html, 'RRID Annotator — ' + matches.length + ' resource' + (matches.length > 1 ? 's' : '') + ' found');
 }
 
-// Menu: "Annotate Selection (no dialog)" — insert every match immediately,
+// Menu: "Annotate Selection" — insert every match immediately,
 // skipping the review dialog. Silent on success (the inserted "(RRID:…)"
 // citations are the confirmation); only alerts on an error or a genuine no-op
 // so the command never fails invisibly.
