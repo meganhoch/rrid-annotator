@@ -12,7 +12,7 @@ resolved with local context heuristics and an optional Claude-powered fallback. 
 side panel lists every RRID in the document so you can review, jump to, and toggle
 each annotation.
 
-<img width=90%  alt="image" src="https://github.com/user-attachments/assets/fe3cfc0c-e5db-432d-a8f3-f5fa92600498" />
+<img width=100%  alt="image" src="https://github.com/user-attachments/assets/fe3cfc0c-e5db-432d-a8f3-f5fa92600498" />
 
 <br>
 RRIDs make methods sections reproducible: each identifier resolves (via
