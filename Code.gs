@@ -2,6 +2,7 @@ function onOpen() {
   DocumentApp.getUi()
     .createMenu('RRID')
     .addItem('Annotate Selection', 'annotateSelection')
+    .addItem('Annotate Selection (no dialog)', 'annotateSelectionDirect')
     .addItem('Open RRID Panel', 'showRridPanel')
     .addSeparator()
     .addItem('Diagnose Selection (debug)', 'diagnoseSelection')
@@ -97,33 +98,22 @@ function restoreAnnotation(rrid, anchor) {
   return { ok: true };
 }
 
-function annotateSelection() {
-  const ui  = DocumentApp.getUi();
+// Build the list of resource matches for the current selection. Returns
+// { matches } on success or { error } with a user-facing message. Kept free of
+// UI (no alerts) so both the review-dialog flow and the direct flow share it.
+function gatherSelectionMatches() {
   const doc = DocumentApp.getActiveDocument();
   const selection = doc.getSelection();
-
-  if (!selection) {
-    ui.alert('RRID Annotator', 'Please select some text first.', ui.ButtonSet.OK);
-    return;
-  }
+  if (!selection) return { error: 'Please select some text first.' };
 
   const text = getSelectionText(selection);
-  if (!text.trim()) {
-    ui.alert('RRID Annotator', 'Selection is empty.', ui.ButtonSet.OK);
-    return;
-  }
+  if (!text.trim()) return { error: 'Selection is empty.' };
 
   const apiKey = getApiKey();
-  if (!apiKey) {
-    ui.alert('RRID Annotator', 'Please set your SciCrunch API key first (RRID → Settings).', ui.ButtonSet.OK);
-    return;
-  }
+  if (!apiKey) return { error: 'Please set your SciCrunch API key first (RRID → Settings).' };
 
   const candidates = extractCandidates(text);
-  if (candidates.length === 0) {
-    ui.alert('RRID Annotator', 'No candidates found.\nText received: "' + text + '"', ui.ButtonSet.OK);
-    return;
-  }
+  if (candidates.length === 0) return { error: 'No candidates found.\nText received: "' + text + '"' };
 
   // Deduplicate by normalised phrase
   const seen = new Set();
@@ -150,18 +140,40 @@ function annotateSelection() {
     }
   }
 
-  if (matches.length === 0) {
-    ui.alert('RRID Annotator', 'No matching resources found in the SciCrunch registry.', ui.ButtonSet.OK);
-    return;
-  }
+  if (matches.length === 0) return { error: 'No matching resources found in the SciCrunch registry.' };
+  return { matches: matches };
+}
 
-  // Show results dialog
+// Menu: "Annotate Selection" — review the matches in a dialog before inserting.
+function annotateSelection() {
+  const ui  = DocumentApp.getUi();
+  const res = gatherSelectionMatches();
+  if (res.error) { ui.alert('RRID Annotator', res.error, ui.ButtonSet.OK); return; }
+
+  const matches  = res.matches;
   const template = HtmlService.createTemplateFromFile('Dialog');
   template.matches = matches;
   const html = template.evaluate()
     .setWidth(480)
     .setHeight(Math.min(140 + matches.length * 46, 420));
   ui.showModalDialog(html, 'RRID Annotator — ' + matches.length + ' resource' + (matches.length > 1 ? 's' : '') + ' found');
+}
+
+// Menu: "Annotate Selection (no dialog)" — insert every match immediately,
+// skipping the review dialog. Silent on success (the inserted "(RRID:…)"
+// citations are the confirmation); only alerts on an error or a genuine no-op
+// so the command never fails invisibly.
+function annotateSelectionDirect() {
+  const ui  = DocumentApp.getUi();
+  const res = gatherSelectionMatches();
+  if (res.error) { ui.alert('RRID Annotator', res.error, ui.ButtonSet.OK); return; }
+
+  const log = insertCitations(JSON.stringify(res.matches));
+  if (!/^OK:/m.test(log)) {
+    ui.alert('RRID Annotator',
+      'Nothing to annotate — the matched resource(s) are already cited, or their ' +
+      'text could not be located in the document.', ui.ButtonSet.OK);
+  }
 }
 
 function insertCitations(matchesJson) {
