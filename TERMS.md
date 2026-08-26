@@ -1,13 +1,13 @@
 # Terms of Service — RRID Annotator
 
-*Last updated: 2026-08-21*
+*Last updated: 2026-08-26*
 
-By installing or using the RRID Annotator add-on for Google Docs ("the add-on"),
+By installing or using the RRID Annotator add-on for Google Docs™ ("the add-on"),
 you agree to these terms.
 
 ## The service
 
-The add-on detects research resources in your Google Docs and inserts RRID
+The add-on detects research resources in your Google Docs™ document and inserts RRID
 (Research Resource Identifier) citations by querying the SciCrunch registry, with
 optional LLM-assisted disambiguation. It is provided free of charge.
 
@@ -22,8 +22,9 @@ the Anthropic (Claude) API. You are responsible for:
   including [SciCrunch](https://scicrunch.org/) and
   [Anthropic](https://www.anthropic.com/legal).
 
-Your document text is sent to those services only as needed to perform lookups; see
-the [Privacy Policy](PRIVACY.md) for details.
+Your document is not uploaded to those services. Only short extracts — a candidate
+resource phrase, and for optional disambiguation a sentence-length snippet — are sent
+as needed to perform lookups; see the [Privacy Policy](PRIVACY.md) for details.
 
 ## Acceptable use
 
@@ -50,3 +51,8 @@ changes constitutes acceptance of the revised terms.
 ## Contact
 
 alexdwade@gmail.com
+
+---
+
+Google Docs™ is a trademark of Google LLC. RRID Annotator is not created by, endorsed
+by, or affiliated with Google LLC. SciCrunch and RRID are services of SciCrunch, Inc.
