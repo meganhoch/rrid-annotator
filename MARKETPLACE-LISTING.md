@@ -26,19 +26,19 @@ RRID Annotator finds the research resources named in your research publication a
 Select a passage and run RRID → Annotate Selection. The add-on scans the selection for research resources, looks each one up in the SciCrunch registry, and inserts a citation such as (RRID:SCR_002333) immediately after the resource's name, hyperlinked to its registry record.
 
 WHY RRIDs
-Methods sections are often ambiguous about which antibody, cell line, organism, or software package was actually used. Two labs can describe different reagents in identical words. An RRID resolves to a single unambiguous registry record, so a reader — or an automated screening tool — can identify the exact resource and reproduce the work. A growing number of journals now ask for them.
+Methods sections are often ambiguous about which antibody, cell line, organism, or software package was actually used. Two labs can describe different reagents in identical words. An RRID resolves to a single unambiguous registry record, so readers and automated screening tools can identify the exact resource and reproduce the work. A growing number of journals now ask for them.
 
-IT KNOWS WHEN A WORD ISN'T A RESOURCE
-Resource names collide with ordinary language. "Python" is a programming language and a snake; "NEURON" is a simulator and a cell. Before citing anything, the add-on reads the surrounding sentence and skips mentions that are being used in the everyday sense. It is deliberately cautious in one direction: it only suppresses a citation when the context argues against it, so a plain mention like "we used ImageJ to measure the area" is still annotated. For genuinely mixed passages you can optionally supply your own Anthropic API key, and the add-on will ask Claude to settle the call.
+RESOURCE NAME DISAMBIGUATION
+Resource names can collide with ordinary language. "Python" is a programming language and a snake; "NEURON" is a simulator and a cell. Before citing anything, the add-on assesses the surrounding sentence to understand the context in which the term is being used. For mixed passages you can optionally supply your own Anthropic API key, and the add-on will ask Claude to settle the call.
 
 CITED ONCE, AT THE FIRST MENTION
-Each resource is cited a single time, at its first mention. Before inserting, the add-on checks whether that RRID already appears anywhere in the document — including from an earlier session — so re-running it never leaves you with duplicate citations to clean up.
+Each resource is cited a single time, at its first mention. Before inserting, the add-on checks whether that RRID already appears anywhere in the document.
 
 FEATURES
 • One-click annotation — select text, run one menu command, and matched resources are cited inline and hyperlinked to their SciCrunch record.
 • Review before inserting — an optional dialog lists every match so you can confirm what will be written before anything touches your document.
 • Context-aware disambiguation — skips resource names being used in their everyday sense, with an optional Claude fallback for ambiguous cases.
-• Resource side panel — lists every RRID in the document. Click a row to read the registry details, jump the cursor to the citation, or toggle an annotation off and back on.
+• Resource side panel — lists every RRID in the document. Click a row to read the registry details, jump the cursor to the citation, or toggle an annotation off and on.
 • Diagnostics — shows the candidate phrases pulled from your selection and the raw registry results with match scores, so you can see exactly why a term did or did not match.
 • Bring your own keys — your API keys are stored in your own per-user add-on storage, never displayed back to you, and never shared with other users.
 
@@ -49,7 +49,7 @@ DATA AND PRIVACY
 The add-on reads the text you select and the RRID citations already present in your document. Resource names are sent to the SciCrunch registry to look up identifiers. If you choose to enable the optional fallback, a short surrounding text snippet is sent to Anthropic for that one classification. Your document is not stored by the add-on. See the privacy policy for full details.
 
 ———
-Google Docs™ is a trademark of Google LLC. RRID Annotator is not created by, endorsed by, or affiliated with Google LLC. SciCrunch and RRID are services of SciCrunch, Inc.
+Google Docs™ is a trademark of Google LLC. RRID Annotator is not created by, endorsed by, or affiliated with Google LLC. SciCrunch and RRID are services of SciCrunch.org.
 ```
 
 ---
