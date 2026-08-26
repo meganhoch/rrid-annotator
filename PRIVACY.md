@@ -66,4 +66,4 @@ alexdwade@gmail.com
 
 Google Docs™, Google Apps Script™, and Google Account™ are trademarks of Google LLC.
 RRID Annotator is not created by, endorsed by, or affiliated with Google LLC.
-SciCrunch and RRID are services of SciCrunch, Inc.
+SciCrunch and RRID are services of SciCrunch.org.

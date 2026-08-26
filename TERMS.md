@@ -55,4 +55,4 @@ alexdwade@gmail.com
 ---
 
 Google Docs™ is a trademark of Google LLC. RRID Annotator is not created by, endorsed
-by, or affiliated with Google LLC. SciCrunch and RRID are services of SciCrunch, Inc.
+by, or affiliated with Google LLC. SciCrunch and RRID are services of SciCrunch.org.
