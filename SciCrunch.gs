@@ -47,6 +47,10 @@ function querySciCrunch(apiKey, phrase, context) {
     name,
     score: Math.round(bestScore * 1000) / 1000,
     url: 'https://n2t.net/RRID:' + rrid,
+    // Raw registry record, for the disambiguator to derive software cues from
+    // (description / keywords / synonyms). Internal only — gatherSelectionMatches
+    // drops it before the match list is serialised to the dialog.
+    resource: best,
   };
 }
 

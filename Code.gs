@@ -115,6 +115,15 @@ function gatherSelectionMatches() {
   const candidates = extractCandidates(text);
   if (candidates.length === 0) return { error: 'No candidates found.\nText received: "' + text + '"' };
 
+  // Index every occurrence of each phrase, so the sense gate can weigh a
+  // phrase across all its mentions rather than only the first one.
+  const occurrences = new Map();
+  for (const c of candidates) {
+    const key = c[0].toLowerCase();
+    if (!occurrences.has(key)) occurrences.set(key, []);
+    occurrences.get(key).push(c);
+  }
+
   // Deduplicate by normalised phrase
   const seen = new Set();
   const unique = candidates.filter(([phrase]) => {
@@ -133,11 +142,25 @@ function gatherSelectionMatches() {
   for (const [phrase, start, end] of unique) {
     if (acceptedSpans.some(([s, e]) => start >= s && end <= e)) continue;
     const hit = querySciCrunch(apiKey, phrase, text);
-    if (hit && !seenRrids.has(hit.rrid)) {
-      seenRrids.add(hit.rrid);
-      matches.push({ candidate: phrase, start, end, ...hit });
-      acceptedSpans.push([start, end]);
+    if (!hit || seenRrids.has(hit.rrid)) continue;
+
+    // Sense gate: a name match is not enough — the phrase must actually be
+    // used as the resource here. Vetoes "pythons basking" matching Python the
+    // language, while leaving cue-free mentions ("we used ImageJ") annotated.
+    // Falls back to Claude only for genuinely mixed contexts, and only when the
+    // user has supplied an Anthropic key in Settings.
+    if (!phraseRefersToResource(phrase, text, occurrences.get(phrase.toLowerCase()), hit.resource)) {
+      continue;
     }
+
+    seenRrids.add(hit.rrid);
+    // Build the match explicitly: hit.resource is the full registry record and
+    // must not ride along into the dialog payload.
+    matches.push({
+      candidate: phrase, start, end,
+      rrid: hit.rrid, name: hit.name, score: hit.score, url: hit.url,
+    });
+    acceptedSpans.push([start, end]);
   }
 
   if (matches.length === 0) return { error: 'No matching resources found in the SciCrunch registry.' };

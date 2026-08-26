@@ -90,4 +90,87 @@ console.log(`Confident decisions: ${confidentOK}/${confidentOK + confidentWrong}
   `   |   deferred to LLM: ${deferred}/${expected.cases.length}`);
 if (confidentWrong) console.log("FAIL: a confident cue decision was wrong.");
 else console.log("PASS: every confident cue decision matched ground truth.");
-process.exit(confidentWrong ? 1 : 0);
+
+// ───────────────────────────────────────────────────────────────────────────
+// Part 2 — the GATE as the live annotate path calls it, with the LLM disabled.
+// This is the deterministic floor: what the add-on does for a user who has not
+// supplied an Anthropic key. Only genuinely mixed contexts should be wrong.
+// ───────────────────────────────────────────────────────────────────────────
+let gateOK = 0, gateWrong = 0;
+const gateMisses = [];
+for (const c of expected.cases) {
+  const sIdx = text.indexOf(c.snippet);
+  if (sIdx < 0) continue;
+  const local = text.indexOf(c.term, sIdx);
+  const got = ctx.shouldAnnotateOccurrence(
+    c.term, text, local, local + c.term.length, resourceFor(c.term), { allowLLM: false });
+  if (got === c.should_annotate) gateOK++;
+  else { gateWrong++; gateMisses.push(`${c.term} (${c.snippet.slice(0, 40)}…)`); }
+}
+console.log(`\nGate, no LLM: ${gateOK}/${gateOK + gateWrong} occurrences correct`);
+gateMisses.forEach(m => console.log("  miss: " + m));
+
+// ───────────────────────────────────────────────────────────────────────────
+// Part 3 — regressions the gate must NOT cause.
+// ───────────────────────────────────────────────────────────────────────────
+const checks = [];
+function check(name, actual, want) {
+  checks.push({ name, ok: actual === want, actual, want });
+}
+
+// (a) THE BIG ONE: a bare mention with no sense cues at all must still be
+// annotated. Most real citations look like this; if the gate demanded positive
+// proof, it would silently suppress nearly every ordinary match.
+const bare = "We used ImageJ to measure the area of each region.";
+const bStart = bare.indexOf("ImageJ");
+check("bare mention with no cues → annotate",
+  ctx.shouldAnnotateOccurrence("ImageJ", bare, bStart, bStart + 6,
+    { item: { name: "ImageJ", description: "ImageJ is an image processing program." } },
+    { allowLLM: false }),
+  true);
+
+// (b) An unknown resource (no record, no cues) must still be annotated —
+// softwareCuesFromResource gets nothing to work with, and that is not evidence
+// against the match.
+const unk = "Analysis was performed with Foobar.";
+const uStart = unk.indexOf("Foobar");
+check("no registry record → annotate",
+  ctx.shouldAnnotateOccurrence("Foobar", unk, uStart, uStart + 6, null, { allowLLM: false }),
+  true);
+
+// (c) Phrase level: one software mention rescues a phrase whose other mentions
+// are the everyday sense.
+const mixedText =
+  "Two pythons were basking in the wild near the forest habitat. " +
+  "Separately, we scripted the analysis in Python 3.11 using the standard library.";
+const mixedOccs = [];
+for (const t of ["pythons", "Python"]) {
+  let at = mixedText.indexOf(t);
+  while (at !== -1) { mixedOccs.push([t, at, at + t.length]); at = mixedText.indexOf(t, at + 1); }
+}
+check("mixed selection, one software mention → annotate",
+  ctx.phraseRefersToResource("Python", mixedText, mixedOccs, RES.python, { allowLLM: false }),
+  true);
+
+// (d) Phrase level: every mention biological → skip.
+const snakeText =
+  "Two pythons were basking in the wild. The pythons are a species of large reptile.";
+const snakeOccs = [];
+let sAt = snakeText.indexOf("pythons");
+while (sAt !== -1) { snakeOccs.push(["pythons", sAt, sAt + 7]); sAt = snakeText.indexOf("pythons", sAt + 1); }
+check("all mentions biological → skip",
+  ctx.phraseRefersToResource("pythons", snakeText, snakeOccs, RES.python, { allowLLM: false }),
+  false);
+
+console.log("\nRegression checks");
+console.log("-".repeat(60));
+let regFail = 0;
+for (const c of checks) {
+  if (!c.ok) regFail++;
+  console.log(`${c.ok ? "ok  " : "FAIL"}  ${c.name}` + (c.ok ? "" : `  (got ${c.actual}, want ${c.want})`));
+}
+
+console.log("-".repeat(60));
+const failed = confidentWrong || regFail;
+console.log(failed ? "FAIL" : "PASS");
+process.exit(failed ? 1 : 0);

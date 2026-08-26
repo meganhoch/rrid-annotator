@@ -133,24 +133,84 @@ function senseDecision(candidate, ctxText, resource) {
 }
 
 /**
- * Top-level gate. Returns true iff the occurrence should be annotated as the
- * resource. Cue-confident cases decide locally; uncertain cases fall back to
- * the LLM (Apps Script runtime only — see classifyAmbiguousWithLLM).
+ * THE GATE RULE — annotate unless there is positive evidence against it.
+ *
+ * A candidate only reaches this point because it already name-matched a
+ * SciCrunch resource above the score threshold. So the gate's job is narrow:
+ * veto the match when the local context shows the word is being used in its
+ * everyday / biological sense instead. It is NOT a second relevance test.
+ *
+ * That asymmetry matters. Most legitimate mentions carry no sense cues at all
+ * ("We used ImageJ to measure the area" scores sw=0, bio=0). If a bare mention
+ * had to prove itself, the gate would suppress nearly every ordinary match. So
+ * `bio === 0` — nothing arguing the other way — always annotates, exactly as
+ * the add-on behaved before the gate existed. Only an occurrence with real
+ * biological/specimen evidence can lose, and only if no occurrence of the same
+ * phrase reads confidently as the resource.
+ *
+ * Returns {annotate: bool, reason: string, llmUsed: bool}.
+ */
+function _gateDecision(candidate, occurrences, text, resource, opts) {
+  opts = opts || {};
+  var mixed = null;        // most software-leaning occurrence that also has bio evidence
+  var sawNegative = false;
+
+  for (var i = 0; i < occurrences.length; i++) {
+    var occ = occurrences[i];
+    var ctx = contextWindow(text, occ[1], occ[2], opts.radius);
+    var d = senseDecision(candidate, ctx, resource);
+
+    // One confident software mention is enough. A resource genuinely cited
+    // once stays cited even if the same word is used in its everyday sense
+    // elsewhere in the selection ("pythons bask… we scripted Python 3.11").
+    if (d.confident && d.sense === "software") {
+      return { annotate: true, reason: "software cues", llmUsed: false };
+    }
+    if (d.bio === 0) continue;                 // nothing argues against this one
+    sawNegative = true;
+    if (!d.confident && (mixed === null || d.sw > mixed.d.sw)) {
+      mixed = { ctx: ctx, d: d };
+    }
+  }
+
+  if (!sawNegative) {
+    return { annotate: true, reason: "no counter-evidence", llmUsed: false };
+  }
+
+  // Negative evidence, and nothing read confidently as the resource. If some
+  // occurrence was genuinely mixed, spend ONE LLM call on the most
+  // software-leaning of them to break the tie.
+  if (mixed && opts.allowLLM !== false &&
+      typeof classifyAmbiguousWithLLM === "function") {
+    var resName = ((resource && (resource.item || resource)) || {}).name || candidate;
+    var verdict = classifyAmbiguousWithLLM(candidate, mixed.ctx, resName);
+    if (verdict === "software") return { annotate: true, reason: "LLM: software", llmUsed: true };
+    if (verdict === "other") return { annotate: false, reason: "LLM: other", llmUsed: true };
+    // No key, or the call failed — fall back to the cue tilt.
+    return {
+      annotate: mixed.d.sense === "software",
+      reason: "cue tilt (no LLM verdict)",
+      llmUsed: false
+    };
+  }
+  return { annotate: false, reason: "biological cues", llmUsed: false };
+}
+
+/**
+ * Gate for a single occurrence. Thin wrapper over the shared rule.
  */
 function shouldAnnotateOccurrence(candidate, text, start, end, resource, opts) {
-  opts = opts || {};
-  var ctx = contextWindow(text, start, end, opts.radius);
-  var d = senseDecision(candidate, ctx, resource);
-  if (d.confident) return d.sense === "software";
-  // Inconclusive cues -> LLM fallback if available; else be conservative.
-  if (typeof classifyAmbiguousWithLLM === "function" && opts.allowLLM !== false) {
-    var resName = (resource && (resource.item || resource) || {}).name || candidate;
-    var llm = classifyAmbiguousWithLLM(candidate, ctx, resName);
-    if (llm === "software") return true;
-    if (llm === "other") return false;
-  }
-  // No confident cue and no LLM verdict: lean on the cue tilt, else don't annotate.
-  return d.sense === "software";
+  return _gateDecision(candidate, [[candidate, start, end]], text, resource, opts).annotate;
+}
+
+/**
+ * Gate for a phrase across EVERY occurrence of it in the text — the entry
+ * point used by the live annotate path. `occurrences` is an array of
+ * [phrase, start, end] triples.
+ */
+function phraseRefersToResource(candidate, text, occurrences, resource, opts) {
+  if (!occurrences || !occurrences.length) return true;
+  return _gateDecision(candidate, occurrences, text, resource, opts).annotate;
 }
 
 /**

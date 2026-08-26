@@ -25,10 +25,13 @@ author actually used.
   matched resources are cited inline with a hyperlink to their registry record.
 - **First-instance-only** — each resource is annotated once, at its first mention;
   it won't re-annotate a resource already cited elsewhere in the document.
-- **Context-aware disambiguation** — a term that name-matches a resource is only
-  annotated if its local context actually refers to that resource. Cues are derived
-  from the SciCrunch record plus generic software/biological signal lists; genuinely
-  ambiguous cases fall back to an LLM (optional).
+- **Context-aware disambiguation** — a term that name-matches a resource is skipped
+  when its local context shows it is being used in an everyday sense instead (the
+  snake *python*, a *neuron* the cell). The gate is deliberately asymmetric: it only
+  vetoes a match that has evidence against it, so an ordinary mention carrying no
+  cues either way is still annotated. Cues are derived from the matched SciCrunch
+  record plus generic software/biological signal lists; genuinely mixed contexts
+  fall back to Claude when an Anthropic key is configured.
 - **Resource side panel** — **RRID → Open RRID Panel** lists every RRID in the
   document; click one to see its details inline, jump the cursor to its citation, or
   toggle the annotation off/on.
