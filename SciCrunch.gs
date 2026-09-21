@@ -113,7 +113,9 @@ function lookupRridDetails(apiKey, rrid) {
   const data = JSON.parse(response.getContentText());
   const hits = ((data.hits || {}).hits || []).map(h => h._source);
 
-  // Prefer the exact identifier match; fall back to the first hit.
+  // Require an exact identifier match; deliberately no fall-back to hits[0].
+  // The loop examines every hit, so a fall-back would fire only when the
+  // requested RRID is absent, returning an unrelated record under it.
   let match = null;
   for (const resource of hits) {
     const item = resource.item || resource;
@@ -122,7 +124,6 @@ function lookupRridDetails(apiKey, rrid) {
       break;
     }
   }
-  if (!match) match = hits[0] || null;
   if (!match) return null;
 
   const item = match.item || match;
